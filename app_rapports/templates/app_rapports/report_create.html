@@ -299,11 +299,27 @@ document.addEventListener("DOMContentLoaded", function () {
         options.forEach(option => {
             const text = option.text.toLowerCase();
             option.style.display =
-                value === "" || text.startsWith(value)
+                value === "" || text.includes(value)
                 ? "block"
                 : "none";
         });
     });
+});
+// ordre par le nom
+document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("id_queries");
+    if (!select) return;
+
+    // Récupérer et trier les options
+    const options = Array.from(select.options);
+
+    options.sort((a, b) =>
+        a.text.localeCompare(b.text, 'fr', { sensitivity: 'base' })
+    );
+
+    // Réinjecter les options triées
+    select.innerHTML = "";
+    options.forEach(option => select.appendChild(option));
 });
 
 

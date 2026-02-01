@@ -11,6 +11,8 @@ urlpatterns = [
     path("users/edit/<int:user_id>/", user_edit, name="user_edit"),
     path("users/delete/<int:user_id>/", user_delete, name="user_delete"),
     path("logout/", logout_view, name="logout"),
+    path("users/reset-password/<int:user_id>/", views.reset_user_password, name="reset_user_password"),
+
 
 
     # ================= HOME =================

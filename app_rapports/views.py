@@ -49,7 +49,7 @@ from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.db.models import OuterRef, Subquery
 from .models import Report, ReportExecutionLog
-  
+from django.contrib.auth import authenticate, login  
 # =====================================================
 # HOME
 # =====================================================
@@ -577,19 +577,83 @@ def query_parameters(request):
 # =========================
 # 🔐 LOGIN
 # =========================
+from django.contrib.auth import authenticate, login
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.contrib.auth.models import User
+from .models import Profile
+
+
 def login_view(request):
+    # 🔁 ÉTAPE 2 : changement mot de passe (session déjà ouverte)
+    if request.method == "POST" and request.session.get("force_user_id"):
+        user_id = request.session.get("force_user_id")
+        user = User.objects.get(id=user_id)
+        profile = user.profile
+
+        new_password1 = request.POST.get("new_password1")
+        new_password2 = request.POST.get("new_password2")
+
+        if not new_password1 or not new_password2:
+            messages.error(request, "⚠ Veuillez saisir le nouveau mot de passe")
+            return render(request, "auth/login.html", {
+                "force_password_change": True
+            })
+
+        if new_password1 != new_password2:
+            messages.error(request, "Les mots de passe ne correspondent pas")
+            return render(request, "auth/login.html", {
+                "force_password_change": True
+            })
+
+        # 🔐 MAJ mot de passe
+        user.set_password(new_password1)
+        user.save()
+
+        profile.force_password_change = False
+        profile.save()
+
+        # 🧹 Nettoyage session
+        del request.session["force_user_id"]
+
+        # 🔓 Connexion finale
+        login(request, user)
+        messages.success(request, "Mot de passe modifié avec succès")
+
+        return redirect(request.GET.get("next", "home"))
+
+    # 🔁 ÉTAPE 1 : login normal
     if request.method == "POST":
-        username = request.POST.get("username")  
+        username = request.POST.get("username")
         password = request.POST.get("password")
 
         user = authenticate(request, username=username, password=password)
-        if user:
-            login(request, user)
-            return redirect("home")  
-        else:
+
+        if user is None:
             messages.error(request, "Nom d'utilisateur ou mot de passe incorrect")
+            return redirect("login")
+
+        profile, _ = Profile.objects.get_or_create(user=user)
+
+        # 🔒 Forcer changement mot de passe
+        if profile.force_password_change:
+            request.session["force_user_id"] = user.id  # ✅ clé magique
+
+            messages.warning(
+                request,
+                "⚠ Veuillez changer votre mot de passe avant de continuer"
+            )
+
+            return render(request, "auth/login.html", {
+                "force_password_change": True
+            })
+
+        # ✅ Login normal
+        login(request, user)
+        return redirect(request.GET.get("next", "home"))
 
     return render(request, "auth/login.html")
+
 
 
 # admin
@@ -654,8 +718,20 @@ def register_view(request):
             user.is_superuser = False
 
         user.save()
-        login(request, user)
-        return redirect("home")
+
+        # 🔁 OBLIGER LE CHANGEMENT DE MOT DE PASSE
+        Profile.objects.create(
+            user=user,
+            force_password_change=True
+        )
+
+        messages.success(
+            request,
+            "Utilisateur créé. Il devra changer son mot de passe à la première connexion."
+        )
+
+        # ❌ NE PAS CONNECTER L’UTILISATEUR CRÉÉ
+        return redirect("users_list")
 
     return render(request, "auth/register.html")
 
@@ -672,20 +748,48 @@ def logout_view(request):
 
 
 # Liste complète des utilisateurs
+from django.contrib.sessions.models import Session
+from django.utils import timezone
+from django.db.models import Case, When, IntegerField
+from django.db.models.functions import Coalesce
+
 @admin_required
 def users_list(request):
-    users = User.objects.annotate(
-        role_order=Case(
-            When(is_superuser=True, then=0),  
-            When(is_staff=True, then=1),        
-            default=2,                          
-            output_field=IntegerField()
+    # 🔑 sessions actives
+    active_sessions = Session.objects.filter(
+        expire_date__gte=timezone.now()
+    )
+
+    user_ids_online = set()
+
+    for session in active_sessions:
+        data = session.get_decoded()
+        uid = data.get("_auth_user_id")
+        if uid:
+            user_ids_online.add(int(uid))
+
+    users = (
+        User.objects.annotate(
+            role_order=Case(
+                When(is_superuser=True, then=0),
+                When(is_staff=True, then=1),
+                default=2,
+                output_field=IntegerField()
+            ),
+            last_activity=Coalesce("last_login", "date_joined")
         )
-    ).order_by("role_order", "username")
+        .order_by("role_order", "-last_activity", "username")
+    )
+
+    # 🔥 Statut réel
+    for u in users:
+        u.status = "online" if u.id in user_ids_online else "offline"
 
     return render(request, "auth/users_list.html", {
         "users": users
     })
+
+
 
 #Modifier utilisateur
 @admin_required
@@ -701,16 +805,10 @@ def user_edit(request, user_id):
         return redirect("users_list")
 
     if request.method == "POST":
-        username = request.POST.get("username")
         email = request.POST.get("email")
-        role = request.POST.get("role")  
+        role = request.POST.get("role")
 
-        # 🔁 Username unique
-        if User.objects.exclude(id=user.id).filter(username=username).exists():
-            messages.error(request, "Nom d'utilisateur déjà utilisé")
-            return redirect("user_edit", user_id=user.id)
-
-        user.username = username
+        # ❌ username NON modifiable
         user.email = email
 
         # 🔐 GESTION DES PERMISSIONS
@@ -742,6 +840,7 @@ def user_edit(request, user_id):
         "user": user
     })
 
+
 # Supprimer  utilisateur
 @admin_required
 def user_delete(request, user_id):
@@ -771,4 +870,53 @@ def user_delete(request, user_id):
     return redirect("users_list")
 
 
+# réinitialiser mot de passe
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.contrib.auth.models import User
+from django.contrib.auth.hashers import make_password
+from .models import Profile
+
+@admin_required
+def reset_user_password(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+
+    profile, _ = Profile.objects.get_or_create(user=user)
+
+    # 🔒 Sécurité Super Admin
+    if user.is_superuser and not request.user.is_superuser:
+        messages.error(
+            request,
+            "Seul un Super Administrateur peut modifier le mot de passe d’un Super Administrateur"
+        )
+        return redirect("users_list")
+
+    if request.method == "POST":
+        new_password1 = request.POST.get("new_password1")
+        new_password2 = request.POST.get("new_password2")
+
+        if not new_password1 or not new_password2:
+            messages.error(request, "Tous les champs sont obligatoires")
+            return redirect("reset_user_password", user_id=user.id)
+
+        if new_password1 != new_password2:
+            messages.error(request, "Les mots de passe ne correspondent pas")
+            return redirect("reset_user_password", user_id=user.id)
+
+        user.set_password(new_password1)
+        user.save()
+
+        # 🔁 Forcer changement au prochain login
+        profile.force_password_change = True
+        profile.save()
+
+        messages.success(
+            request,
+            f"Mot de passe mis à jour pour {user.username}"
+        )
+        return redirect("users_list")
+
+    return render(request, "auth/reset_user_password.html", {
+        "user_obj": user
+    })
 

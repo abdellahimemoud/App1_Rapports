@@ -2,15 +2,30 @@
 {% block title %}Connexion{% endblock %}
 
 {% block content %}
-<div class="container d-flex justify-content-center">
-<a class="navbar-logo d-flex align-items-center">   
+
+<div class="container d-flex justify-content-center mb-3">
+    <a class="navbar-logo d-flex align-items-center">
         <img src="data:image/png;base64,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"
-                    alt="Logo"
-                   class="navbar-logo">
-</a></div>
-<h4 class="text-center fw-bold mb-4">
-    <i class="bi bi-lock-fill text-primary"></i>  Se connecter
+             alt="Logo"
+             class="navbar-logo">
+    </a>
+</div>
+
+{% if force_password_change %}
+
+<h4 class="text-center fw-bold mb-4 text-danger">
+    <i class="bi bi-shield-lock-fill"></i>
+     Changer mot de passe
 </h4>
+
+{% else %}
+
+<h4 class="text-center fw-bold mb-4">
+    <i class="bi bi-lock-fill text-primary"></i> Se connecter
+</h4>
+
+{% endif %}
+
 {% for message in messages %}
 <div class="alert alert-danger text-center">
     {{ message }}
@@ -20,47 +35,59 @@
 <form method="post">
     {% csrf_token %}
 
+    {% if not force_password_change %}
+
     <div class="mb-3">
         <label class="form-label">Nom d'utilisateur</label>
-        <input type="text" name="username" class="form-control" placeholder="Entrez votre nom" required>
+        <input type="text" name="username" class="form-control" required>
     </div>
 
     <div class="mb-3 position-relative">
-    <label class="form-label">Mot de passe</label>
-
-    <input
-        type="password"
-        name="password"
-        id="loginPassword"
-        class="form-control pe-5"
-        placeholder="Entrez votre mot de passe"
-        required
-    >
-
-    <i
-        class="bi bi-eye-fill position-absolute top-50 end-0 translate-middle-y me-3"
-        style="cursor:pointer;"
-        onclick="togglePassword('loginPassword', this)">
-    </i>
+        <label class="form-label">Mot de passe</label>
+        <input type="password" name="password" id="loginPassword" class="form-control pe-5" required>
+        <i class="bi bi-eye-fill position-absolute top-50 end-0 translate-middle-y me-3"
+           style="cursor:pointer;"
+           onclick="togglePassword('loginPassword', this)"></i>
     </div>
-
-
-
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3"> 
         <a href="{% url 'password_reset' %}" class="small text-decoration-none">
-           Mot de passe oublié ?
-       </a>
+             Mot de passe oublié ? </a> 
+    </div>
+    <br>
+
+    {% endif %}
+
+    {% if force_password_change %}
+
+    <div class="mb-3 position-relative">
+        <label class="form-label">Nouveau mot de passe</label>
+        <input type="password" name="new_password1" id="newPassword1" class="form-control pe-5" required>
+        <i class="bi bi-eye-fill position-absolute top-50 end-0 translate-middle-y me-3"
+           style="cursor:pointer;"
+           onclick="togglePassword('newPassword1', this)"></i>
     </div>
 
-    <button type="submit" class="btn btn-primary w-100 fw-bold">
-        <i class="bi bi-check-circle-fill"></i> Connexion
+    <div class="mb-3 position-relative">
+        <label class="form-label">Confirmer le mot de passe</label>
+        <input type="password" name="new_password2" id="newPassword2" class="form-control pe-5" required>
+        <i class="bi bi-eye-fill position-absolute top-50 end-0 translate-middle-y me-3"
+           style="cursor:pointer;"
+           onclick="togglePassword('newPassword2', this)"></i>
+    </div>
+          <br>
+    {% endif %}
+
+    <button type="submit"
+            class="btn {% if force_password_change %}btn-danger{% else %}btn-primary{% endif %} w-100 fw-bold">
+        <i class="bi bi-check-circle-fill"></i>
+        {% if force_password_change %}Mettre à jour{% else %}Connexion{% endif %}
     </button>
 </form>
 
 <script>
 function togglePassword(id, icon) {
     const input = document.getElementById(id);
+    if (!input) return;
 
     if (input.type === "password") {
         input.type = "text";
@@ -72,17 +99,10 @@ function togglePassword(id, icon) {
 }
 </script>
 
-
 <style>
-    .navbar-logo {
-    height: 60px;              /* hauteur de la zone */
+.navbar-logo {
+    height: 60px;
 }
-
-.navbar-logo-img {
-    max-height: 28px;          /* 🔹 taille très petite */
-    width: auto;
-    display: block;
-}
-
 </style>
+
 {% endblock %}
