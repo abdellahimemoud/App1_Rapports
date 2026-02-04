@@ -75,12 +75,14 @@
                     <td class="text-center">
                         <div class="d-flex justify-content-center gap-2 flex-nowrap">
                         {% if request.user.is_staff %}
-                             {#  Réinitialiser mot de passe #}
+                            {#  Réinitialiser mot de passe #}
+                            {% if request.user.is_superuser or not u.is_superuser %}
                             <a href="{% url 'reset_user_password' u.id %}"
                                class="btn btn-info btn-sm rounded-pill"
                                     title="Réinitialiser le mot de passe">
                                  <i class="bi bi-key-fill"></i>
                             </a>
+                            {% endif %}
                             {# ✏️ Modifier #}
                             {% if request.user.is_superuser or not u.is_superuser %}
                                 <a href="{% url 'user_edit' u.id %}"

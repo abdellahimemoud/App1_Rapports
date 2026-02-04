@@ -585,7 +585,7 @@ from .models import Profile
 
 
 def login_view(request):
-    # 🔁 ÉTAPE 2 : changement mot de passe (session déjà ouverte)
+    # 🔁 ÉTAPE 2 : changement mot de passe forcé (session déjà ouverte)
     if request.method == "POST" and request.session.get("force_user_id"):
         user_id = request.session.get("force_user_id")
         user = User.objects.get(id=user_id)
@@ -594,14 +594,42 @@ def login_view(request):
         new_password1 = request.POST.get("new_password1")
         new_password2 = request.POST.get("new_password2")
 
-        if not new_password1 or not new_password2:
-            messages.error(request, "⚠ Veuillez saisir le nouveau mot de passe")
+        # ✅ validation champ 1
+        if not new_password1:
+            messages.error(
+                request,
+                "Veuillez saisir le nouveau mot de passe"
+            )
             return render(request, "auth/login.html", {
                 "force_password_change": True
             })
 
+        # ✅ validation champ 2
+        if not new_password2:
+            messages.error(
+                request,
+                "Confirmation du mot de passe est obligatoire"
+            )
+            return render(request, "auth/login.html", {
+                "force_password_change": True
+            })
+
+        # 🔒 longueur minimale
+        if len(new_password1) < 8:
+            messages.error(
+                request,
+                "Le mot de passe doit contenir au moins 8 caractères"
+            )
+            return render(request, "auth/login.html", {
+                "force_password_change": True
+            })
+
+        # 🔁 correspondance
         if new_password1 != new_password2:
-            messages.error(request, "Les mots de passe ne correspondent pas")
+            messages.error(
+                request,
+                "Les mots de passe ne correspondent pas"
+            )
             return render(request, "auth/login.html", {
                 "force_password_change": True
             })
@@ -613,12 +641,15 @@ def login_view(request):
         profile.force_password_change = False
         profile.save()
 
-        # 🧹 Nettoyage session
+        # 🧹 nettoyage session
         del request.session["force_user_id"]
 
-        # 🔓 Connexion finale
+        # 🔓 connexion finale
         login(request, user)
-        messages.success(request, "Mot de passe modifié avec succès")
+        messages.success(
+            request,
+            "Mot de passe modifié avec succès"
+        )
 
         return redirect(request.GET.get("next", "home"))
 
@@ -627,28 +658,43 @@ def login_view(request):
         username = request.POST.get("username")
         password = request.POST.get("password")
 
-        user = authenticate(request, username=username, password=password)
+        if not username or not password:
+            messages.error(
+                request,
+                "Nom d'utilisateur et mot de passe obligatoires"
+            )
+            return redirect("login")
+
+        user = authenticate(
+            request,
+            username=username,
+            password=password
+        )
 
         if user is None:
-            messages.error(request, "Nom d'utilisateur ou mot de passe incorrect")
+            messages.error(
+                request,
+                "Nom d'utilisateur ou mot de passe incorrect"
+            )
             return redirect("login")
 
         profile, _ = Profile.objects.get_or_create(user=user)
-
-        # 🔒 Forcer changement mot de passe
+        
+        # ⚠ Veuillez changer votre mot de passe avant de continuer
+        # 🔒 forcer changement mot de passe
         if profile.force_password_change:
-            request.session["force_user_id"] = user.id  # ✅ clé magique
+            request.session["force_user_id"] = user.id
 
             messages.warning(
                 request,
-                "⚠ Veuillez changer votre mot de passe avant de continuer"
+                ""
             )
-
+        
             return render(request, "auth/login.html", {
                 "force_password_change": True
             })
 
-        # ✅ Login normal
+        # ✅ login normal
         login(request, user)
         return redirect(request.GET.get("next", "home"))
 
@@ -678,18 +724,66 @@ def register_view(request):
         password2 = request.POST.get("password2")
         role = request.POST.get("role")
 
-        if password1 != password2:
-            messages.error(request, "Les mots de passe ne correspondent pas")
+        # ✅ validation username
+        if not username:
+            messages.error(
+                request,
+                "Le nom d'utilisateur est obligatoire"
+            )
             return redirect("register")
 
-        if User.objects.filter(username=username).exists():
-            messages.error(request, "Nom d'utilisateur déjà utilisé")
+        # ✅ validation email
+        if not email:
+            messages.error(
+                request,
+                "L'email est obligatoire"
+            )
             return redirect("register")
 
         try:
             validate_email(email)
         except ValidationError:
-            messages.error(request, "Email invalide")
+            messages.error(
+                request,
+                "Email invalide"
+            )
+            return redirect("register")
+
+        # ✅ validation mot de passe
+        if not password1:
+            messages.error(
+                request,
+                "Le mot de passe est obligatoire"
+            )
+            return redirect("register")
+
+        if not password2:
+            messages.error(
+                request,
+                "La confirmation du mot de passe est obligatoire"
+            )
+            return redirect("register")
+
+        if len(password1) < 8:
+            messages.error(
+                request,
+                "Le mot de passe doit contenir au moins 8 caractères"
+            )
+            return redirect("register")
+
+        if password1 != password2:
+            messages.error(
+                request,
+                "Les mots de passe ne correspondent pas"
+            )
+            return redirect("register")
+
+        # 🔁 username unique
+        if User.objects.filter(username=username).exists():
+            messages.error(
+                request,
+                "Nom d'utilisateur déjà utilisé"
+            )
             return redirect("register")
 
         # 🔒 BLOQUER SUPER ADMIN SI PAS AUTORISÉ
@@ -700,13 +794,14 @@ def register_view(request):
             )
             return redirect("register")
 
+        # 👤 création utilisateur
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password1
         )
 
-        # 🔐 ATTRIBUTION DES DROITS
+        # 🔐 attribution des droits
         if role == "superadmin":
             user.is_staff = True
             user.is_superuser = True
@@ -719,7 +814,7 @@ def register_view(request):
 
         user.save()
 
-        # 🔁 OBLIGER LE CHANGEMENT DE MOT DE PASSE
+        # 🔁 forcer changement mot de passe à la 1ʳᵉ connexion
         Profile.objects.create(
             user=user,
             force_password_change=True
@@ -730,7 +825,7 @@ def register_view(request):
             "Utilisateur créé. Il devra changer son mot de passe à la première connexion."
         )
 
-        # ❌ NE PAS CONNECTER L’UTILISATEUR CRÉÉ
+        # ❌ ne pas connecter l’utilisateur créé
         return redirect("users_list")
 
     return render(request, "auth/register.html")
@@ -841,6 +936,7 @@ def user_edit(request, user_id):
     })
 
 
+
 # Supprimer  utilisateur
 @admin_required
 def user_delete(request, user_id):
@@ -883,7 +979,7 @@ def reset_user_password(request, user_id):
 
     profile, _ = Profile.objects.get_or_create(user=user)
 
-    # 🔒 Sécurité Super Admin
+    # 🔒 sécurité Super Admin
     if user.is_superuser and not request.user.is_superuser:
         messages.error(
             request,
@@ -895,18 +991,43 @@ def reset_user_password(request, user_id):
         new_password1 = request.POST.get("new_password1")
         new_password2 = request.POST.get("new_password2")
 
-        if not new_password1 or not new_password2:
-            messages.error(request, "Tous les champs sont obligatoires")
+        # ✅ validation champ 1
+        if not new_password1:
+            messages.error(
+                request,
+                "Le nouveau mot de passe est obligatoire"
+            )
             return redirect("reset_user_password", user_id=user.id)
 
+        # ✅ validation champ 2
+        if not new_password2:
+            messages.error(
+                request,
+                "La confirmation du mot de passe est obligatoire"
+            )
+            return redirect("reset_user_password", user_id=user.id)
+
+        # 🔒 longueur minimale
+        if len(new_password1) < 8:
+            messages.error(
+                request,
+                "Le mot de passe doit contenir au moins 8 caractères"
+            )
+            return redirect("reset_user_password", user_id=user.id)
+
+        # 🔁 correspondance
         if new_password1 != new_password2:
-            messages.error(request, "Les mots de passe ne correspondent pas")
+            messages.error(
+                request,
+                "Les mots de passe ne correspondent pas"
+            )
             return redirect("reset_user_password", user_id=user.id)
 
+        # 🔐 MAJ mot de passe
         user.set_password(new_password1)
         user.save()
 
-        # 🔁 Forcer changement au prochain login
+        # 🔁 forcer changement au prochain login
         profile.force_password_change = True
         profile.save()
 
@@ -919,4 +1040,4 @@ def reset_user_password(request, user_id):
     return render(request, "auth/reset_user_password.html", {
         "user_obj": user
     })
-
+    
