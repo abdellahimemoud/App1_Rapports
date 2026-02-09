@@ -17,11 +17,6 @@
     <i class="bi bi-person-plus-fill text-success"></i> Créer un compte
 </h4>
 
-{% for message in messages %}
-<div class="alert alert-danger text-center">
-    {{ message }}
-</div>
-{% endfor %}
 
 <form method="post">
     {% csrf_token %}

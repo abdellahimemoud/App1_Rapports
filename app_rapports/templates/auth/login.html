@@ -26,12 +26,6 @@
 
 {% endif %}
 
-{% for message in messages %}
-<div class="alert alert-danger text-center">
-    {{ message }}
-</div>
-{% endfor %}
-
 <form method="post">
     {% csrf_token %}
 

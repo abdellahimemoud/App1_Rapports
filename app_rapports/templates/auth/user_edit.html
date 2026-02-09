@@ -12,12 +12,6 @@
         Modifier l'utilisateur
     </h4>
 
-    {% for message in messages %}
-        <div class="alert alert-danger text-center">
-            {{ message }}
-        </div>
-    {% endfor %}
-
 <form method="post" class="card shadow-sm p-4 border-0 rounded-4">
     {% csrf_token %}
 

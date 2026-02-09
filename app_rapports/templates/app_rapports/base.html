@@ -173,18 +173,48 @@
     </div>
 </nav>
 
-<!-- ================= MESSAGES DJANGO ================= -->
+<!-- ================= Messages Django - Top Center SaaS ================= -->
 {% if messages %}
-<div class="container mb-4">
-    {% for message in messages %}
-        <div class="alert alert-{{ message.tags }} alert-dismissible fade show shadow-sm" role="alert">
-            <i class="bi bi-info-circle-fill me-2"></i>
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    {% endfor %}
+<div class="position-fixed top-0 start-50 translate-middle-x p-3"
+     style="z-index: 1080; min-width: 320px; max-width: 420px;">
+
+  {% for message in messages %}
+
+    {% if message.tags == "success" %}
+      <div class="alert alert-success shadow border-0 text-center auto-dismiss">
+        <i class="bi bi-check-circle-fill me-2"></i>{{ message }}
+      </div>
+
+    {% elif message.tags == "error" %}
+      <div class="alert alert-danger shadow border-0 text-center auto-dismiss">
+        <i class="bi bi-x-circle-fill me-2"></i>{{ message }}
+      </div>
+
+    {% elif message.tags == "warning" %}
+      <div class="alert alert-warning shadow border-0 text-center auto-dismiss">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ message }}
+      </div>
+
+    {% else %}
+      <div class="alert alert-info shadow border-0 text-center auto-dismiss">
+        <i class="bi bi-info-circle-fill me-2"></i>{{ message }}
+      </div>
+    {% endif %}
+
+  {% endfor %}
 </div>
 {% endif %}
+
+<!-- ================= Disparition automatique ================= -->
+<script>
+  setTimeout(() => {
+    document.querySelectorAll(".auto-dismiss").forEach(el => {
+      el.classList.add("fade");
+      setTimeout(() => el.remove(), 400);
+    });
+  }, 3000);
+</script>
+
 
 <!-- ================= MAIN CONTENT ================= -->
 <div class="container mb-5">
