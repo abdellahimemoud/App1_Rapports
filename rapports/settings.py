@@ -88,12 +88,15 @@ WSGI_APPLICATION = 'rapports.wsgi.application'
 # ===========================
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.oracle',
-        'NAME': config('DB_NAME'),
-        'USER': config('USER'),
-        'PASSWORD': config('PASSWORD'),
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'rapports',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': '127.0.0.1',
+        'PORT': '5432',
     }
 }
+
 
 
 
